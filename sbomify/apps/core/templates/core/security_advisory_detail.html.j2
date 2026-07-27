@@ -68,9 +68,12 @@
                                 <i class="fas fa-link w-5 text-center opacity-70" aria-hidden="true"></i>
                                 Copy link
                             </button>
-                            <button type="button" class="tw-dropdown-item" role="menuitem" @click="open = false">
-                                <i class="fas fa-file-export w-5 text-center opacity-70" aria-hidden="true"></i>
-                                Export VEX
+                            <button type="button"
+                                    class="tw-dropdown-item"
+                                    role="menuitem"
+                                    @click="open = false; $dispatch('open-link-vex-modal')">
+                                <i class="fas fa-file-shield w-5 text-center opacity-70" aria-hidden="true"></i>
+                                Link a VEX
                             </button>
                             <div class="tw-dropdown-divider"></div>
                             <button type="button" class="tw-dropdown-item tw-dropdown-item-danger" role="menuitem" @click="open = false">
@@ -348,6 +351,105 @@
                                         <button type="button" class="tw-btn-ghost" @click="open = false">Cancel</button>
                                         <button type="submit" class="tw-btn-primary">
                                             <i class="fas fa-check mr-2"></i>Save changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            {# Link a VEX Modal (Alpine.js) — front-end preview, does not persist yet (#1172) #}
+            <div x-data="{ open: false, sel: [], search: '', candidates: [], init() { this.candidates = window.parseJsonScript('vex-candidates') || []; if (window.location.hash === '#link-vex') this.open = true; }, get filtered() { if (!this.search) return this.candidates; const s = this.search.toLowerCase(); return this.candidates.filter(v => (v.product + ' ' + v.coverage + ' ' + v.format).toLowerCase().includes(s)); } }"
+                 @open-link-vex-modal.window="open = true; sel = []; search = ''">
+                {{ vex_candidates|json_script:"vex-candidates" }}
+                <template x-teleport="body">
+                    <div x-show="open"
+                         x-cloak
+                         class="fixed inset-0 z-[100]"
+                         role="dialog"
+                         aria-modal="true"
+                         aria-labelledby="linkVexModalLabel">
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0"
+                             x-transition:enter-end="opacity-100"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0"
+                             class="tw-modal-overlay"
+                             @click="open = false"></div>
+                        <div class="tw-modal"
+                             x-show="open"
+                             x-trap.noscroll="open"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             @click.stop
+                             @keydown.escape="if(open) open = false">
+                            <div class="tw-modal-content">
+                                <div class="tw-modal-header">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                            <i class="fas fa-file-shield text-primary"></i>
+                                        </div>
+                                        <h4 id="linkVexModalLabel" class="tw-modal-title">Link a VEX</h4>
+                                    </div>
+                                    <button type="button"
+                                            class="tw-modal-close"
+                                            @click="open = false"
+                                            aria-label="Close">
+                                        <i class="fas fa-times" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <form method="post" action="{% url 'core:security_advisory_detail' advisory.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="intent" value="link_vex" />
+                                    <div class="tw-modal-body space-y-4">
+                                        <p class="text-sm text-text-muted">
+                                            Associate an existing VEX with this advisory. VEX statements are maintained per component — linking references the live statement rather than copying it.
+                                        </p>
+                                        {% if vex_candidates %}
+                                            <div class="relative">
+                                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-xs" aria-hidden="true"></i>
+                                                <label for="vexSearch" class="sr-only">Search VEX documents</label>
+                                                <input id="vexSearch"
+                                                       type="search"
+                                                       x-model="search"
+                                                       placeholder="Search VEX documents…"
+                                                       class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text placeholder:text-text-muted transition-colors focus:outline-none focus:border-primary/60" />
+                                            </div>
+                                            <div class="space-y-2">
+                                                <template x-for="v in filtered" :key="v.id">
+                                                    <label class="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer transition-colors hover:border-primary/50">
+                                                        <input type="checkbox" name="vex_ids" :value="v.id" x-model="sel" class="mt-0.5 accent-primary" />
+                                                        <span class="min-w-0">
+                                                            <span class="block text-sm font-medium text-text" x-text="v.product + ' — maintained VEX'"></span>
+                                                            <span class="block text-xs text-text-muted mt-0.5" x-text="v.format + ' · covers ' + v.coverage + ' · updated ' + v.updated"></span>
+                                                        </span>
+                                                    </label>
+                                                </template>
+                                                <template x-if="filtered.length === 0">
+                                                    <div class="rounded-lg border border-border bg-surface p-4 text-sm text-text-muted text-center">No VEX matches your search.</div>
+                                                </template>
+                                            </div>
+                                        {% else %}
+                                            <div class="rounded-lg border border-border bg-surface p-4 text-sm text-text-muted text-center">
+                                                No VEX found for this advisory's products yet.
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="tw-modal-footer">
+                                        <button type="button" class="tw-btn-ghost" @click="open = false">Cancel</button>
+                                        <button type="submit"
+                                                class="tw-btn-primary"
+                                                :disabled="sel.length === 0"
+                                                :class="sel.length === 0 ? 'opacity-50 cursor-not-allowed' : ''">
+                                            <i class="fas fa-file-shield mr-2"></i>
+                                            <span x-text="sel.length > 1 ? ('Link ' + sel.length + ' VEX documents') : 'Link VEX'"></span>
                                         </button>
                                     </div>
                                 </form>

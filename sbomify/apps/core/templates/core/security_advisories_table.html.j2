@@ -252,9 +252,12 @@
                 <i class="fas fa-link w-5 text-center opacity-70" aria-hidden="true"></i>
                 Copy link
             </button>
-            <button type="button" class="tw-dropdown-item" role="menuitem" @click="rowMenu.open = false">
-                <i class="fas fa-file-export w-5 text-center opacity-70" aria-hidden="true"></i>
-                Export VEX
+            <button type="button"
+                    class="tw-dropdown-item"
+                    role="menuitem"
+                    @click="window.location.href = '{% url 'core:security_advisory_detail' '__ID__' %}'.replace('__ID__', rowMenu.adv.id) + '#link-vex'; rowMenu.open = false">
+                <i class="fas fa-file-shield w-5 text-center opacity-70" aria-hidden="true"></i>
+                Link a VEX
             </button>
             <div class="tw-dropdown-divider"></div>
             <button type="button" class="tw-dropdown-item tw-dropdown-item-danger" role="menuitem" @click="rowMenu.open = false">

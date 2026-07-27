@@ -205,6 +205,32 @@ def _timeline(advisory: dict[str, Any]) -> list[dict[str, Any]]:
     return items
 
 
+def _vex_candidates(advisory: dict[str, Any]) -> list[dict[str, Any]]:
+    """VEX documents that could be linked to this advisory.
+
+    A VEX is maintained per component (see ComponentVexDrift), so the candidates
+    are the maintained VEX for workspace components that cover this advisory's
+    vulnerability — affected products first. Dummy data for now (#1172); real
+    linking would query the workspace's VEX artifacts / component VEX for the
+    same CVE.
+    """
+    coverage = advisory.get("vulnerability_id") or advisory["id"]
+    names = [product["name"] for product in advisory.get("products", [])]
+    for extra in ("Auth Server", "Digipass", "Mobile Suite"):
+        if extra not in names:
+            names.append(extra)
+    return [
+        {
+            "id": "vex-" + name.lower().replace(" ", "-"),
+            "product": name,
+            "format": "CycloneDX VEX",
+            "coverage": coverage,
+            "updated": advisory["updated_display"],
+        }
+        for name in names
+    ]
+
+
 def _get_advisory(advisory_id: str) -> dict[str, Any] | None:
     for advisory in _dummy_advisories():
         if advisory["id"] == advisory_id:
@@ -273,6 +299,7 @@ class SecurityAdvisoryDetailView(GuestAccessBlockedMixin, LoginRequiredMixin, Vi
             "advisory": advisory,
             "timeline": _timeline(advisory),
             "update_kinds": UPDATE_KINDS,
+            "vex_candidates": _vex_candidates(advisory),
         }
         return render(request, "core/security_advisory_detail.html.j2", context)
 
@@ -293,6 +320,14 @@ class SecurityAdvisoryDetailView(GuestAccessBlockedMixin, LoginRequiredMixin, Vi
             messages.info(
                 request,
                 "Preview only: changes to the update were not saved. "
+                "Security advisories are not connected to the backend yet.",
+            )
+        elif intent == "link_vex":
+            count = len(request.POST.getlist("vex_ids"))
+            noun = "VEX document" if count == 1 else "VEX documents"
+            messages.info(
+                request,
+                f"Preview only: {count} {noun} were not linked. "
                 "Security advisories are not connected to the backend yet.",
             )
         else:
