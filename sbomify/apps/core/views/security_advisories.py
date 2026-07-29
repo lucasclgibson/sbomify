@@ -44,7 +44,9 @@ UPDATE_KINDS: dict[str, dict[str, Any]] = {
     kind: {**meta, "sets_status": True} for kind, meta in REMEDIATION_META.items()
 }
 UPDATE_KINDS[NOTE_ONLY_KIND] = {
-    "label": "Update",
+    # Matches the option the user actually picks, so the confirmation names
+    # the same thing the select did.
+    "label": "Note only",
     "variant": "secondary",
     "icon": "fas fa-comment",
     "sets_status": False,

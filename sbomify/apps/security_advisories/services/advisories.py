@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Prefetch, QuerySet
+from django.db.models import Prefetch, Q, QuerySet
 
 from sbomify.apps.core.services.results import ServiceResult
 from sbomify.apps.security_advisories.models import (
@@ -302,9 +302,9 @@ def get_advisory(team: Any, advisory_id: str) -> ServiceResult[dict[str, Any]]:
     the workspace, so another workspace's advisory reads as absent rather than
     forbidden.
     """
-    advisory = _base_queryset(team).filter(id=advisory_id).first()
-    if advisory is None:
-        advisory = _base_queryset(team).filter(tracking_id=advisory_id).first()
+    # One queryset, one query: Q rather than a second lookup, so the prefetches
+    # are not rebuilt and re-run for an advisory found by tracking id.
+    advisory = _base_queryset(team).filter(Q(id=advisory_id) | Q(tracking_id=advisory_id)).first()
     if advisory is None:
         return ServiceResult.failure("Advisory not found", status_code=404)
     return ServiceResult.success(_advisory_projection(advisory, detail=True))

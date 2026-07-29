@@ -240,11 +240,17 @@
                 <div class="space-y-3 border-t border-border/60 pt-6">
                     <h2 class="text-xs uppercase tracking-wide text-text-muted">Affected products</h2>
                     <div class="flex flex-wrap gap-2">
+                        {% comment %}An advisory can name a product this workspace does not track, and keeps naming it after one is deleted. Those have no id, and the url tag would happily build /product/None/ rather than fail, so they render as plain text.{% endcomment %}
                         {% for product in advisory.products %}
-                            <a href="{% url 'core:product_details' product.id %}"
-                               class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg bg-border/20 text-text-muted border border-border/40 transition-colors hover:opacity-80">
-                                <i class="fas fa-cube text-[10px] mr-1.5 opacity-70"></i>{{ product.name }}
-                            </a>
+                            <span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg bg-border/20 text-text-muted border border-border/40">
+                                <i class="fas fa-cube text-[10px] mr-1.5 opacity-70"></i>
+                                {% if product.id %}
+                                    <a href="{% url 'core:product_details' product.id %}"
+                                       class="transition-colors hover:opacity-80">{{ product.name }}</a>
+                                {% else %}
+                                    {{ product.name }}
+                                {% endif %}
+                            </span>
                         {% endfor %}
                     </div>
                 </div>

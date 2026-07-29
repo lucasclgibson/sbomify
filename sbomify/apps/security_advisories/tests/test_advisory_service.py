@@ -115,9 +115,7 @@ class TestType:
         """cve_id is validated as a real CVE id, so a GHSA can only ever arrive
         as a reference. Reading the type off cve_id would never fire."""
         advisory = _advisory(sample_team)
-        AdvisoryReference.objects.create(
-            advisory=advisory, reference_type="ghsa", external_id="GHSA-hxxf-q3w9-4xgw"
-        )
+        AdvisoryReference.objects.create(advisory=advisory, reference_type="ghsa", external_id="GHSA-hxxf-q3w9-4xgw")
 
         row = list_advisories(sample_team).value[0]
 
@@ -233,3 +231,22 @@ class TestSearchAndCounts:
         counts = advisory_counts(list_advisories(sample_team).value)
 
         assert counts == {"total": 3, "open": 1, "resolved": 2, "published": 1}
+
+
+class TestLookup:
+    def test_it_resolves_by_tracking_id_as_well_as_pk(self, sample_team):
+        """The tracking id is what the list links and what a person pastes."""
+        advisory = _advisory(sample_team, status="published", tracking_id="OSPN-2026-0099", published_at=timezone.now())
+
+        assert get_advisory(sample_team, "OSPN-2026-0099").value["id"] == "OSPN-2026-0099"
+        assert get_advisory(sample_team, advisory.id).ok
+
+    def test_it_takes_one_query_either_way(self, sample_team, django_assert_num_queries):
+        """Two sequential lookups would rebuild the prefetches and re-run them
+        for anything found by tracking id."""
+        advisory = _advisory(sample_team, status="published", tracking_id="OSPN-2026-0100", published_at=timezone.now())
+        AdvisoryVulnerability.objects.create(advisory=advisory, cve_id="CVE-2026-0100", severity="high")
+
+        # One for the advisory, then one per prefetched relation.
+        with django_assert_num_queries(5):
+            get_advisory(sample_team, "OSPN-2026-0100")
