@@ -3288,18 +3288,23 @@ def download_release_vex(request: HttpRequest, release_id: str) -> Any:
 
 @router.get(
     "/releases/{release_id}/cbom/download",
-    response={200: None, 403: ErrorResponse, 404: ErrorResponse, 500: ErrorResponse},
+    response={200: None, 400: ErrorResponse, 403: ErrorResponse, 404: ErrorResponse, 500: ErrorResponse},
     auth=None,
     tags=["Releases"],
 )
 @decorate_view(optional_token_auth)
-def download_release_cbom(request: HttpRequest, release_id: str) -> Any:
+def download_release_cbom(request: HttpRequest, release_id: str, version: str = Query("1.6")) -> Any:  # type: ignore[type-arg]
     """Download the merged CBOM (Cryptography BOM) for a release.
 
     Combines the newest CBOM of each component in the release into a single CycloneDX document, so a
     consumer pulls one crypto BOM per release. Gated exactly like the SBOM and VEX downloads: open
     for a public product, otherwise authenticated with release read access.
+
+    ``version`` selects the output spec: "1.6" (default, 1.7-only vocabulary
+    down-converted for consumer compatibility) or "1.7" (native).
     """
+    if version not in ("1.6", "1.7"):
+        return 400, {"detail": "version must be 1.6 or 1.7", "error_code": ErrorCode.BAD_REQUEST}
     try:
         release = Release.objects.select_related("product", "product__team").get(pk=release_id)
     except Release.DoesNotExist:
@@ -3322,10 +3327,10 @@ def download_release_cbom(request: HttpRequest, release_id: str) -> Any:
     slot_state = ReleaseArtifact.objects.filter(release=release, sbom__bom_type=SBOM.BomType.CBOM).aggregate(
         n=Count("id"), newest=Max("sbom__created_at")
     )
-    cache_key = f"release-cbom:{release.id}:{slot_state['n']}:{slot_state['newest']}"
+    cache_key = f"release-cbom:{release.id}:{version}:{slot_state['n']}:{slot_state['newest']}"
     document = cache.get(cache_key)
     if document is None:
-        document = build_release_cbom(release) or {"__absent__": True}
+        document = build_release_cbom(release, spec_version=version) or {"__absent__": True}
         cache.set(cache_key, document, 900)
     if document.get("__absent__"):
         return 404, {"detail": "No CBOM available for this release", "error_code": ErrorCode.NOT_FOUND}
@@ -4079,8 +4084,21 @@ def list_component_sboms(
     component_id: str,
     page: int = Query(1),  # type: ignore[type-arg]
     page_size: int = Query(15),  # type: ignore[type-arg]
+    include_all_types: bool = Query(False),  # type: ignore[type-arg]
+    version: str | None = None,
+    format: str | None = None,
 ) -> Any:
-    """List all SBOMs for a specific component with pagination."""
+    """List a component's artifacts with pagination.
+
+    SBOMs only by default; ``include_all_types`` also returns VEX, CBOM and any
+    other bom types so the merged "Artifacts & security" table can list them.
+
+    Optional `version` and `format` query parameters narrow the result to
+    exact matches (no prefix or fuzzy matching — 'v1.2.3' and '1.2.3' are
+    distinct versions). Filters are applied before pagination, so a filtered
+    miss returns an empty first page and a hit returns the newest match first.
+    Omitting both parameters returns the full, unfiltered listing.
+    """
     try:
         component = Component.objects.get(pk=component_id)
     except Component.DoesNotExist:
@@ -4132,9 +4150,14 @@ def list_component_sboms(
         from sbomify.apps.sboms.models import SBOM
 
         try:
-            sboms_queryset = SBOM.objects.filter(component_id=component_id, bom_type=SBOM.BomType.SBOM).order_by(
-                "-created_at"
-            )
+            sboms_queryset = SBOM.objects.filter(component_id=component_id)
+            if not include_all_types:
+                sboms_queryset = sboms_queryset.filter(bom_type=SBOM.BomType.SBOM)
+            if version is not None:
+                sboms_queryset = sboms_queryset.filter(version=version)
+            if format is not None:
+                sboms_queryset = sboms_queryset.filter(format=format)
+            sboms_queryset = sboms_queryset.order_by("-created_at")
             # Apply pagination
             paginated_sboms, pagination_meta = _paginate_queryset(sboms_queryset, page, page_size)
         except (DatabaseError, OperationalError) as db_err:
