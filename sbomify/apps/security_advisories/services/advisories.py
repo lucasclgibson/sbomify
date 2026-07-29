@@ -35,10 +35,17 @@ SEVERITY_RANK = {"critical": 4, "high": 3, "medium": 2, "low": 1}
 
 # Remediation status to badge variant and icon. One dict so the list, the detail
 # header and the timeline cannot drift apart on how a state looks.
+#
+# All five are soft-tint variants. tw-badge-accent is the one badge in the
+# system with white text, a gradient and a glow, which made fix_in_progress the
+# only saturated thing on a page of pale pills. violet keeps the purple the
+# design intended and sits between investigating's blue and resolved's green,
+# which is also where it belongs in the lifecycle; primary would have been too
+# close to info to tell apart a row later.
 REMEDIATION_META: dict[str, dict[str, str]] = {
     "identified": {"label": "Identified", "variant": "warning", "icon": "fas fa-circle-exclamation"},
     "investigating": {"label": "Investigating", "variant": "info", "icon": "fas fa-magnifying-glass"},
-    "fix_in_progress": {"label": "Fix in progress", "variant": "accent", "icon": "fas fa-wrench"},
+    "fix_in_progress": {"label": "Fix in progress", "variant": "violet", "icon": "fas fa-wrench"},
     "resolved": {"label": "Resolved", "variant": "success", "icon": "fas fa-circle-check"},
     "wont_fix": {"label": "Won't fix", "variant": "secondary", "icon": "fas fa-ban"},
 }

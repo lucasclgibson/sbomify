@@ -155,11 +155,11 @@
                                 <td>
                                     <div class="flex items-center gap-1.5 flex-wrap">
                                         {% comment %}Two axes: status is where the fix is, publication is who can read it. A resolved advisory can still be unpublished.{% endcomment %}
-                                        <span class="tw-badge"
+                                        <span class="tw-badge whitespace-nowrap"
                                               :class="'tw-badge-' + advisory.status_variant"
                                               x-text="advisory.status_label"></span>
                                         <template x-if="advisory.publication_status !== 'published'">
-                                            <span class="tw-badge"
+                                            <span class="tw-badge whitespace-nowrap"
                                                   :class="'tw-badge-' + advisory.publication_variant"
                                                   x-text="advisory.publication_label"></span>
                                         </template>
