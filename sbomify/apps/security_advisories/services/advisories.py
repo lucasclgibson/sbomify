@@ -150,9 +150,14 @@ def _product_projection(advisory_product: AdvisoryProduct) -> dict[str, Any]:
     template renders plain text rather than a dead link.
     """
     product = advisory_product.product
+    name = product.name if product else advisory_product.product_name
     return {
+        # A stable non-null key for x-for. ``id`` is null for an unlinked
+        # product, and Alpine rejects that as a key, so two unlinked products
+        # would also collide on it.
+        "key": advisory_product.id,
         "id": product.id if product else None,
-        "name": product.name if product else advisory_product.product_name,
+        "name": name,
     }
 
 
