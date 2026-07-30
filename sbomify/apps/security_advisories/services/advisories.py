@@ -217,10 +217,11 @@ def _advisory_projection(advisory: SecurityAdvisory, *, detail: bool = False) ->
     updated_at = max((e.created_at for e in events), default=advisory.updated_at)
 
     projection: dict[str, Any] = {
-        # The display id, because it is both what a human quotes and what the
-        # list links; get_advisory resolves either it or the primary key.
-        "id": _display_id(advisory),
-        "pk": advisory.id,
+        # str() because the table's client-side search lowercases this. Both
+        # sources are CharFields today so it is already a string, but the cast
+        # means a future numeric key cannot break search at runtime.
+        "id": str(_display_id(advisory)),
+        "pk": str(advisory.id),
         "title": advisory.title,
         "summary": advisory.summary,
         "description": advisory.description,

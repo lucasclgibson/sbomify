@@ -250,3 +250,14 @@ class TestLookup:
         # One for the advisory, then one per prefetched relation.
         with django_assert_num_queries(5):
             get_advisory(sample_team, "OSPN-2026-0100")
+
+
+def test_the_display_id_is_always_a_string(sample_team):
+    """The table's client-side search lowercases it, so a non-string would
+    throw at runtime rather than just sorting oddly."""
+    _advisory(sample_team)
+
+    row = list_advisories(sample_team).value[0]
+
+    assert isinstance(row["id"], str)
+    assert isinstance(row["pk"], str)
