@@ -727,7 +727,6 @@ html.no-transitions * {
    ============================================ */
 .tw-card,
 .tw-dashboard-card,
-.tw-settings-card,
 .tw-dangerzone-card {
   background-color: var(--color-surface);
   border-radius: 0.75rem;
@@ -736,8 +735,7 @@ html.no-transitions * {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tw-card:hover,
-.tw-settings-card:hover {
+.tw-card:hover {
   box-shadow: var(--shadow-card-hover);
 }
 
@@ -763,15 +761,6 @@ html.no-transitions * {
   animation: fadeInUp 0.4s ease-out;
   position: relative;
   overflow: hidden;
-}
-
-/* Settings Card - with margin bottom */
-.tw-settings-card {
-  margin-bottom: 1.5rem;
-}
-
-.tw-settings-card:hover {
-  border-color: var(--color-border-light);
 }
 
 /* Danger Zone Card - red accent */
@@ -2416,8 +2405,7 @@ html.no-transitions * {
 
 /* Strip nested border/radius when data table is inside a card */
 .tw-card .tw-data-table,
-.tw-dashboard-card .tw-data-table,
-.tw-settings-card .tw-data-table {
+.tw-dashboard-card .tw-data-table {
   border: none;
   border-radius: 0;
   background-color: transparent;
